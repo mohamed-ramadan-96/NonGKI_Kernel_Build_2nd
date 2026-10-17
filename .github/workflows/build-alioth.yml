@@ -68,8 +68,8 @@ env:
   SUSFS_ENABLE : ${{ inputs.susfs }}
   SUSFS_FIXED : false
 
-  AK3_SOURCE : "https://github.com/osm0sis/AnyKernel3.git"
-  AK3_BRANCH : "master"
+  AK3_SOURCE : "https://github.com/re-noroi/anykernel3-test"
+  AK3_BRANCH : "main"
 
   BOOT_SOURCE : ""
 
