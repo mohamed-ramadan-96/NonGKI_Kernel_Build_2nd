@@ -45,6 +45,26 @@ on:
         type: choice
         options: ['5000-apollo', '4520-stock']
         default: '5000-apollo'
+      kernel_source:
+        description: 'Kernel Tree (git URL)'
+        type: string
+        default: 'https://github.com/mohamed-ramadan-96/kernel_sm8250.git'
+      kernel_branch:
+        description: 'Kernel Tree Branch'
+        type: string
+        default: 'bpf-staging'
+      ak3_source:
+        description: 'AnyKernel3 URL'
+        type: string
+        default: 'https://github.com/re-noroi/anykernel3-test'
+      ak3_branch:
+        description: 'AnyKernel3 Branch'
+        type: string
+        default: 'main'
+      zip_name:
+        description: 'Zip name without .zip'
+        type: string
+        default: 'Aliothfake-ko-j3s'
 
 env:
   # Device env
@@ -55,8 +75,8 @@ env:
   CUSTOM_CMDS: "LLVM=1 LLVM_IAS=1"
   EXTRA_CMDS: ""
 
-  KERNEL_SOURCE: "https://github.com/mohamed-ramadan-96/kernel_sm8250.git"
-  KERNEL_BRANCH: "bpf-staging"
+  KERNEL_SOURCE: ${{ inputs.kernel_source }}
+  KERNEL_BRANCH: ${{ inputs.kernel_branch }}
 
   CLANG_SOURCE: "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/LLVM-19.1.7-Linux-X64.tar.xz"
   CLANG_BRANCH: ""
@@ -81,8 +101,10 @@ env:
   SUSFS_ENABLE: ${{ inputs.susfs }}
   SUSFS_FIXED: false
 
-  AK3_SOURCE: "https://github.com/re-noroi/anykernel3-test"
-  AK3_BRANCH: "main"
+  AK3_SOURCE: ${{ inputs.ak3_source }}
+  AK3_BRANCH: ${{ inputs.ak3_branch }}
+
+  ZIP_NAME: ${{ inputs.zip_name }}
 
   BOOT_SOURCE: ""
 
