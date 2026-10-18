@@ -93,10 +93,12 @@ runs:
           7za a -mx9 tmp.zip *
           cd ..
 
-          cp -fp tmp/tmp.zip Alioth-KOFD-j3s.zip
+                    ZIP_NAME="${ZIP_NAME:-alioth-aosp-AnyKernel3}"
+          NAME="${ZIP_NAME%.zip}"
+          cp -fp tmp/tmp.zip "${NAME}.zip"
           rm -rf tmp
 
-          echo "PACK_NAME=Alioth-KOFD-j3s.zip" >> "$GITHUB_ENV"
+          echo "PACK_NAME=${NAME}.zip" >> "$GITHUB_ENV"
 
       - name: Make Latest Boot Image
         if: env.PACK_METHOD == 'MKBOOTIMG'
