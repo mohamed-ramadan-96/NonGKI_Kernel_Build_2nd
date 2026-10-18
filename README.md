@@ -1,3 +1,6 @@
+<h1 align="center"><b>⚠️ Personal fork for personal use only ⚠️</b></h1>
+<p align="center"><b>Personal modifications. For personal use only.</b></p>
+
 <h2 align="center">Non-GKI Kernel Build</h2>
 
 <p align="center">
