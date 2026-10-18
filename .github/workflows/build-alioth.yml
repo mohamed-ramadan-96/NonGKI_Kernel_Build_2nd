@@ -193,6 +193,9 @@ jobs:
           # BakaSU calls security_dump_masked_av, which is only built with CONFIG_AUDIT
           ./scripts/config --file "$D" --enable CONFIG_AUDIT
 
+          # SUSFS SUS_MAP and uname spoof
+          ./scripts/config --file "$D" --enable CONFIG_KSU_SUSFS_SUS_MAP --enable CONFIG_KSU_SUSFS_SPOOF_UNAME
+
           # Official LLVM is built without MLGO, so disable these flags.
           sed -i -e '/regalloc-enable-advisor/s/^/#/' -e '/enable-ml-inliner/s/^/#/' Makefile
 
@@ -246,7 +249,7 @@ jobs:
       - name: ✅ Verify config
         run: |
           cd "$GITHUB_WORKSPACE/device_kernel"
-          for c in CONFIG_KSU CONFIG_KSU_SUSFS CONFIG_NOMOUNT CONFIG_NTSYNC CONFIG_BYPASS_CHARGING CONFIG_RW_SWAPPINESS; do
+                    for c in CONFIG_KSU CONFIG_KSU_SUSFS CONFIG_KSU_SUSFS_SUS_MAP CONFIG_KSU_SUSFS_SPOOF_UNAME CONFIG_NOMOUNT CONFIG_NTSYNC CONFIG_BYPASS_CHARGING CONFIG_RW_SWAPPINESS; do
             grep -q "^$c=y" out/.config && echo "[+] $c enabled" || echo "[-] $c not enabled"
           done
 
