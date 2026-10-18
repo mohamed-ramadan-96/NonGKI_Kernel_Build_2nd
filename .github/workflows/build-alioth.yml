@@ -11,7 +11,7 @@ on:
       susfs:
         description: 'Patch SUSFS'
         type: boolean
-        default: true
+        default: false
       rekernel:
         description: 'Re:Kernel (for tombstone apps)'
         type: boolean
@@ -31,7 +31,7 @@ on:
       ntsync:
         description: 'Enable NTSYNC'
         type: boolean
-        default: true
+        default: false
       bypass_charging:
         description: 'Enable Bypass Charging'
         type: boolean
