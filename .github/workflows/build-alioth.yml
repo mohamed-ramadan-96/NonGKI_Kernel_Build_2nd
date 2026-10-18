@@ -1,3 +1,4 @@
+
 name: Build Poco F3 (alioth) (bpf-staging)
 
 on:
@@ -21,13 +22,21 @@ on:
         type: boolean
         default: false
       nomount:
-        description: 'Enable NoMount (in-tree, fs/nomount)'
+        description: 'Enable NoMount (external patch action)'
         type: boolean
         default: false
       ntsync:
-        description: 'Enable NTSYNC (in-tree)'
+        description: 'Enable NTSYNC'
         type: boolean
         default: true
+      bypass_charging:
+        description: 'Enable Bypass Charging'
+        type: boolean
+        default: false
+      rw_swappiness:
+        description: 'Enable RW Swappiness'
+        type: boolean
+        default: false
       battery:
         description: 'Battery profile'
         type: choice
@@ -36,47 +45,47 @@ on:
 
 env:
   # Device env
-  DEVICE_NAME : "xiaomi_alioth"
-  DEVICE_CODENAME : "alioth"
+  DEVICE_NAME: "xiaomi_alioth"
+  DEVICE_CODENAME: "alioth"
 
-  CUSTOM_CMDS : "LLVM=1 LLVM_IAS=1"
-  EXTRA_CMDS : ""
+  CUSTOM_CMDS: "LLVM=1 LLVM_IAS=1"
+  EXTRA_CMDS: ""
 
-  KERNEL_SOURCE : "https://github.com/mohamed-ramadan-96/kernel_sm8250.git"
-  KERNEL_BRANCH : "bpf-staging"
+  KERNEL_SOURCE: "https://github.com/mohamed-ramadan-96/kernel_sm8250.git"
+  KERNEL_BRANCH: "bpf-staging"
 
-  CLANG_SOURCE : "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/LLVM-19.1.7-Linux-X64.tar.xz"
-  CLANG_BRANCH : ""
+  CLANG_SOURCE: "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/LLVM-19.1.7-Linux-X64.tar.xz"
+  CLANG_BRANCH: ""
 
-  GCC_GNU : true
-  GCC_64_SOURCE : ""
-  GCC_64_BRANCH : ""
-  GCC_32_SOURCE : ""
-  GCC_32_BRANCH : ""
+  GCC_GNU: true
+  GCC_64_SOURCE: ""
+  GCC_64_BRANCH: ""
+  GCC_32_SOURCE: ""
+  GCC_32_BRANCH: ""
 
   DEFCONFIG_SOURCE: ""
-  DEFCONFIG_NAME : "vendor/alioth_defconfig"
+  DEFCONFIG_NAME: "vendor/alioth_defconfig"
   DEFCONFIG_ORIGIN_IMAGE: ""
   DEFCONFIG_FROM_BOOT: false
 
-  KERNELSU_SOURCE : ""
-  KERNELSU_BRANCH : ""
+  KERNELSU_SOURCE: ""
+  KERNELSU_BRANCH: ""
 
-  KERNELSU_AUTO_GET : "true"
-  KERNELSU_AUTO_FORK : ${{ inputs.ksu }}
+  KERNELSU_AUTO_GET: "true"
+  KERNELSU_AUTO_FORK: ${{ inputs.ksu }}
 
-  SUSFS_ENABLE : ${{ inputs.susfs }}
-  SUSFS_FIXED : false
+  SUSFS_ENABLE: ${{ inputs.susfs }}
+  SUSFS_FIXED: false
 
-  AK3_SOURCE : "https://github.com/re-noroi/anykernel3-test"
-  AK3_BRANCH : "main"
+  AK3_SOURCE: "https://github.com/re-noroi/anykernel3-test"
+  AK3_BRANCH: "main"
 
-  BOOT_SOURCE : ""
+  BOOT_SOURCE: ""
 
-  NEED_DTBO : false
-  NEED_SAFE_DTBO : false
+  NEED_DTBO: false
+  NEED_SAFE_DTBO: false
 
-  ROM_TEXT : "aosp"
+  ROM_TEXT: "aosp"
 
   # Other env
   PYTHON_VERSION: "3"
@@ -94,7 +103,7 @@ env:
 
   REKERNEL_ENABLE: ${{ inputs.rekernel }}
   DROIDSPACES_ENABLE: "false"
-  NOMOUNT_ENABLE: "false"
+  NOMOUNT_ENABLE: ${{ inputs.nomount }}
 
   HOOK_METHOD: "syscall"
 
@@ -119,7 +128,7 @@ env:
 
 jobs:
   build-kernel:
-    name: alioth ${{ inputs.ksu }} SUSFS:${{ inputs.susfs }} NoMount:${{ inputs.nomount }} ReKernel:${{ inputs.rekernel }} BBG:${{ inputs.bbg }}
+    name: alioth ${{ inputs.ksu }} SUSFS:${{ inputs.susfs }} NoMount:${{ inputs.nomount }} NTSYNC:${{ inputs.ntsync }} BypassCharging:${{ inputs.bypass_charging }} RWSwappiness:${{ inputs.rw_swappiness }} ReKernel:${{ inputs.rekernel }} BBG:${{ inputs.bbg }}
     runs-on: ubuntu-22.04
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
@@ -151,33 +160,42 @@ jobs:
 
       - name: 🪛 Extra Kernel Options
         run: |
-          cd $GITHUB_WORKSPACE/device_kernel
-          D=arch/arm64/configs/${{ env.DEFCONFIG_NAME }}
+          cd "$GITHUB_WORKSPACE/device_kernel"
+          D="arch/arm64/configs/${{ env.DEFCONFIG_NAME }}"
           chmod +x scripts/config
 
-          # Official LLVM is built without MLGO, so disable these flags (same as the FD workflow does for Neutron)
+          # Official LLVM is built without MLGO, so disable these flags.
           sed -i -e '/regalloc-enable-advisor/s/^/#/' -e '/enable-ml-inliner/s/^/#/' Makefile
 
-          # BakaSU needs these two symbols non-static (export check + link). No-op if already patched.
+          # BakaSU needs these two symbols non-static.
           sed -i 's/^static const struct file_operations sel_handle_status_ops/const struct file_operations sel_handle_status_ops/' security/selinux/selinuxfs.c
           sed -i 's/^static ssize_t (\*const write_op\[\])(/ssize_t (*const write_op[])(/' security/selinux/selinuxfs.c
 
-          # In-tree features (code already in the source, only toggle the config)
-          if [ "${{ inputs.nomount }}" == "true" ]; then
-            ./scripts/config --file $D --enable CONFIG_NOMOUNT
-          else
-            ./scripts/config --file $D --disable CONFIG_NOMOUNT
-          fi
+          # NTSYNC
           if [ "${{ inputs.ntsync }}" == "true" ]; then
-            ./scripts/config --file $D --enable CONFIG_NTSYNC
+            ./scripts/config --file "$D" --enable CONFIG_NTSYNC
           else
-            ./scripts/config --file $D --disable CONFIG_NTSYNC
+            ./scripts/config --file "$D" --disable CONFIG_NTSYNC
+          fi
+
+          # Bypass Charging
+          if [ "${{ inputs.bypass_charging }}" == "true" ]; then
+            ./scripts/config --file "$D" --enable CONFIG_BYPASS_CHARGING
+          else
+            ./scripts/config --file "$D" --disable CONFIG_BYPASS_CHARGING
+          fi
+
+          # RW Swappiness
+          if [ "${{ inputs.rw_swappiness }}" == "true" ]; then
+            ./scripts/config --file "$D" --enable CONFIG_RW_SWAPPINESS
+          else
+            ./scripts/config --file "$D" --disable CONFIG_RW_SWAPPINESS
           fi
 
       - name: 🔋 Battery variant
         if: ${{ inputs.battery == '4520-stock' }}
         run: |
-          cd $GITHUB_WORKSPACE/device_kernel
+          cd "$GITHUB_WORKSPACE/device_kernel"
           sed -i -e '/qcom,j3s-batt-profile;/d' arch/arm64/boot/dts/vendor/qcom/alioth-sm8250.dtsi
           sed -i -e '/fg-gen4-batterydata-apollo-sun-5000mah.dtsi/d' arch/arm64/boot/dts/vendor/qcom/alioth-sm8250.dtsi
 
@@ -198,9 +216,9 @@ jobs:
 
       - name: ✅ Verify config
         run: |
-          cd $GITHUB_WORKSPACE/device_kernel
-          for c in CONFIG_KSU CONFIG_KSU_SUSFS CONFIG_NOMOUNT CONFIG_NTSYNC; do
-            grep -q "^$c=y" out/.config && echo "[+] $c" || echo "[-] $c not enabled"
+          cd "$GITHUB_WORKSPACE/device_kernel"
+          for c in CONFIG_KSU CONFIG_KSU_SUSFS CONFIG_NOMOUNT CONFIG_NTSYNC CONFIG_BYPASS_CHARGING CONFIG_RW_SWAPPINESS; do
+            grep -q "^$c=y" out/.config && echo "[+] $c enabled" || echo "[-] $c not enabled"
           done
 
       - name: 🔩 Pack Process
