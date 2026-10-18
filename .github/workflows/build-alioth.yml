@@ -31,7 +31,7 @@ on:
       bakasu_branch:
         description: 'BakaSU branch (used only when ksu = bakasu)'
         type: choice
-        options: ['main', 'sync-susfs']
+        options: ['main', 'auto-hook', 'refine-flash', 'renovate/gradle-9.x', 'renovate/maven-group-in-manager', 'sync-susfs', 'sync-upstream', 'uapi/mismatch', 'weblate-main']
         default: 'main'
       susfs:
         description: 'Patch SUSFS'
