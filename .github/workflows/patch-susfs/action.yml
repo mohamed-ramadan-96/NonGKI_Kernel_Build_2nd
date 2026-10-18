@@ -113,6 +113,21 @@ runs:
 
           fi
 
+      - name: Apply SUS_MAP and uname spoof hooks
+        if: env.SUSFS_ENABLE == 'true'
+        shell: bash
+        run: |
+          cd $GITHUB_WORKSPACE/device_kernel/
+          if [ ! -f /tmp/Patches/Patch/sus_extra.patch ]; then
+            echo "[-] sus_extra.patch not found in Patches/Patch"
+            exit 1
+          fi
+          cp /tmp/Patches/Patch/sus_extra.patch ./
+          patch -p1 --dry-run < sus_extra.patch
+          patch -p1 < sus_extra.patch
+          rm -f sus_extra.patch
+          echo "[+] SUS_MAP and uname spoof hooks applied."
+
       - name: SUSFS Patch Fixed
         if: env.SUSFS_ENABLE == 'true' && env.SUSFS_SKIP != 'true'
         shell: bash
