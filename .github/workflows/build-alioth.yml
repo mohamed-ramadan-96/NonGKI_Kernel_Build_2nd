@@ -1,4 +1,3 @@
-
 name: Build Poco F3 (alioth) (bpf-staging)
 
 on:
@@ -23,6 +22,10 @@ on:
         default: false
       nomount:
         description: 'Enable NoMount (external patch action)'
+        type: boolean
+        default: false
+      droidspaces:
+        description: 'Droidspaces (containers)'
         type: boolean
         default: false
       ntsync:
@@ -103,7 +106,7 @@ env:
   SUSFS_PATCH_FIXED: ""
 
   REKERNEL_ENABLE: ${{ inputs.rekernel }}
-  DROIDSPACES_ENABLE: "false"
+  DROIDSPACES_ENABLE: ${{ inputs.droidspaces }}
   NOMOUNT_ENABLE: ${{ inputs.nomount }}
 
   HOOK_METHOD: "syscall"
@@ -129,7 +132,7 @@ env:
 
 jobs:
   build-kernel:
-    name: alioth ${{ inputs.ksu }} SUSFS:${{ inputs.susfs }} NoMount:${{ inputs.nomount }} NTSYNC:${{ inputs.ntsync }} BypassCharging:${{ inputs.bypass_charging }} RWSwappiness:${{ inputs.rw_swappiness }} ReKernel:${{ inputs.rekernel }} BBG:${{ inputs.bbg }}
+    name: alioth ${{ inputs.ksu }} SUSFS:${{ inputs.susfs }} NoMount:${{ inputs.nomount }} Droidspaces:${{ inputs.droidspaces }} NTSYNC:${{ inputs.ntsync }} BypassCharging:${{ inputs.bypass_charging }} RWSwappiness:${{ inputs.rw_swappiness }} ReKernel:${{ inputs.rekernel }} BBG:${{ inputs.bbg }}
     runs-on: ubuntu-22.04
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
