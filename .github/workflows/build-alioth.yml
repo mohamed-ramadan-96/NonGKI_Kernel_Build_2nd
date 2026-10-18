@@ -47,6 +47,7 @@ env:
   # Device env
   DEVICE_NAME: "xiaomi_alioth"
   DEVICE_CODENAME: "alioth"
+  KERNEL_ARCH: "arm64"
 
   CUSTOM_CMDS: "LLVM=1 LLVM_IAS=1"
   EXTRA_CMDS: ""
