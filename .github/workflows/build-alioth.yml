@@ -3,11 +3,36 @@ name: Build Poco F3 (alioth) (bpf-staging)
 on:
   workflow_dispatch:
     inputs:
+      kernel_source:
+        description: 'Kernel Tree (git URL)'
+        type: string
+        default: 'https://github.com/mohamed-ramadan-96/kernel_sm8250.git'
+      kernel_branch:
+        description: 'Kernel Tree Branch'
+        type: string
+        default: 'bpf-staging'
+      ak3_source:
+        description: 'AnyKernel3 URL'
+        type: string
+        default: 'https://github.com/re-noroi/anykernel3-test'
+      ak3_branch:
+        description: 'AnyKernel3 Branch'
+        type: string
+        default: 'main'
+      zip_name:
+        description: 'Zip name without .zip'
+        type: string
+        default: 'Aliothfake-ko-j3s'
       ksu:
         description: 'KernelSU variant (SUSFS works with bakasu / sukisu only)'
         type: choice
         options: ['bakasu', 'sukisu', 'next', 'rsuntk', 'xxksu']
         default: 'bakasu'
+      bakasu_branch:
+        description: 'BakaSU branch (used only when ksu = bakasu)'
+        type: choice
+        options: ['main', 'sync-susfs']
+        default: 'main'
       susfs:
         description: 'Patch SUSFS'
         type: boolean
@@ -45,31 +70,6 @@ on:
         type: choice
         options: ['5000-apollo', '4520-stock']
         default: '5000-apollo'
-      kernel_source:
-        description: 'Kernel Tree (git URL)'
-        type: string
-        default: 'https://github.com/mohamed-ramadan-96/kernel_sm8250.git'
-      kernel_branch:
-        description: 'Kernel Tree Branch'
-        type: string
-        default: 'bpf-staging'
-      ak3_source:
-        description: 'AnyKernel3 URL'
-        type: string
-        default: 'https://github.com/re-noroi/anykernel3-test'
-      ak3_branch:
-        description: 'AnyKernel3 Branch'
-        type: string
-        default: 'main'
-      zip_name:
-        description: 'Zip name without .zip'
-        type: string
-        default: 'Aliothfake-ko-j3s'
-      bakasu_branch:
-        description: 'BakaSU branch (used only when ksu = bakasu)'
-        type: choice
-        options: ['main', 'sync-susfs']
-        default: 'main'
 
 env:
   # Device env
