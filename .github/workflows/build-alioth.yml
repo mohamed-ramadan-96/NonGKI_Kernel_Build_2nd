@@ -65,6 +65,11 @@ on:
         description: 'Zip name without .zip'
         type: string
         default: 'Aliothfake-ko-j3s'
+      bakasu_branch:
+        description: 'BakaSU branch (used only when ksu = bakasu)'
+        type: choice
+        options: ['main', 'sync-susfs']
+        default: 'main'
 
 env:
   # Device env
