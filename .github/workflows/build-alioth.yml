@@ -23,7 +23,7 @@ on:
         description: 'Zip name without .zip'
         type: string
         default: 'Aliothfake-ko-j3s'
-            ksu:
+        ksu:
         description: 'KernelSU variant (SUSFS works with bakasu / sukisu only)'
         type: choice
         options: ['bakasu', 'sukisu', 'next', 'rsuntk', 'xxksu', 'kowsu']
