@@ -97,10 +97,10 @@ env:
   DEFCONFIG_ORIGIN_IMAGE: ""
   DEFCONFIG_FROM_BOOT: false
 
-  KERNELSU_SOURCE: ${{ inputs.ksu == 'bakasu' && 'https://raw.githubusercontent.com/Baka-SU/BakaSU/refs/heads/main/kernel/setup.sh' || '' }}
-  KERNELSU_BRANCH: ${{ inputs.ksu == 'bakasu' && inputs.bakasu_branch || '' }}
+  KERNELSU_SOURCE: ${{ inputs.ksu == 'bakasu' && 'https://raw.githubusercontent.com/Baka-SU/BakaSU/refs/heads/main/kernel/setup.sh' || inputs.ksu == 'kowsu' && 'https://raw.githubusercontent.com/KOWX712/KernelSU/refs/heads/master/kernel/setup.sh' || '' }}
+  KERNELSU_BRANCH: ${{ inputs.ksu == 'bakasu' && inputs.bakasu_branch || inputs.ksu == 'kowsu' && 'master' || '' }}
 
-  KERNELSU_AUTO_GET: ${{ inputs.ksu == 'bakasu' && 'false' || 'true' }}
+  KERNELSU_AUTO_GET: ${{ (inputs.ksu == 'bakasu' || inputs.ksu == 'kowsu') && 'false' || 'true' }}
   KERNELSU_AUTO_FORK: ${{ inputs.ksu }}
 
   SUSFS_ENABLE: ${{ inputs.susfs }}
