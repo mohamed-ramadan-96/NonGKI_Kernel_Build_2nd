@@ -255,7 +255,9 @@ jobs:
           find drivers/kernelsu KernelSU -type f \( -name '*.c' -o -name '*.h' \) 2>/dev/null | while read -r f; do
             sed -i '/MODULE_IMPORT_NS/d' "$f"
             sed -i 's|<linux/pgtable.h>|<asm/pgtable.h>|g' "$f"
+            sed -i -E 's/register_trace_prio_([a-z_]+)\(([^,]+),([^,]+),[^)]*\)/register_trace_\1(\2,\3)/g' "$f"
           done
+          grep -rn "register_trace" drivers/kernelsu KernelSU 2>/dev/null || true
 
 
       - name: 🚀 Build Process
