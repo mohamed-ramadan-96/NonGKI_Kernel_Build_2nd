@@ -248,6 +248,13 @@ jobs:
       - name: 🛡️ Patch Kernel of NoMount
         uses: ./.github/workflows/patch-nomount
 
+      - name: 🩹 Fix kowsu on 4.19
+        if: ${{ inputs.ksu == 'kowsu' }}
+        run: |
+          cd "$GITHUB_WORKSPACE/device_kernel"
+          grep -rl 'MODULE_IMPORT_NS' drivers/kernelsu KernelSU 2>/dev/null | xargs -r sed -i '/MODULE_IMPORT_NS/d'
+
+
       - name: 🚀 Build Process
         uses: ./.github/workflows/build-process
 
