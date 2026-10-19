@@ -1,4 +1,4 @@
-name: Build Poco F3 (alioth) (bpf-staging)
+name: Build Poco F3 (alioth)
 
 on:
   workflow_dispatch:
