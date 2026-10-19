@@ -256,8 +256,12 @@ jobs:
             sed -i '/MODULE_IMPORT_NS/d' "$f"
             sed -i 's|<linux/pgtable.h>|<asm/pgtable.h>|g' "$f"
             sed -i -E 's/register_trace_prio_([a-z_]+)\(([^,]+),([^,]+),[^)]*\)/register_trace_\1(\2,\3)/g' "$f"
+            sed -i 's/copy_to_kernel_nofault/probe_kernel_write/g' "$f"
+            sed -i 's/copy_from_kernel_nofault/probe_kernel_read/g' "$f"
+            sed -i 's/strncpy_from_kernel_nofault/strncpy_from_unsafe/g' "$f"
+            sed -i 's/copy_from_user_nofault/probe_user_read/g' "$f"
+            sed -i 's/copy_to_user_nofault/probe_user_write/g' "$f"
           done
-          grep -rn "register_trace" drivers/kernelsu KernelSU 2>/dev/null || true
 
 
       - name: 🚀 Build Process
