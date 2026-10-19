@@ -1,4 +1,4 @@
-name: Build Poco F3 (alioth)
+name: Build Poco F3 (alioth) ko
 
 on:
   workflow_dispatch:
