@@ -252,7 +252,10 @@ jobs:
         if: ${{ inputs.ksu == 'kowsu' }}
         run: |
           cd "$GITHUB_WORKSPACE/device_kernel"
-          grep -rl 'MODULE_IMPORT_NS' drivers/kernelsu KernelSU 2>/dev/null | xargs -r sed -i '/MODULE_IMPORT_NS/d'
+          find drivers/kernelsu KernelSU -type f \( -name '*.c' -o -name '*.h' \) 2>/dev/null | while read -r f; do
+            sed -i '/MODULE_IMPORT_NS/d' "$f"
+            sed -i 's|<linux/pgtable.h>|<asm/pgtable.h>|g' "$f"
+          done
 
 
       - name: 🚀 Build Process
