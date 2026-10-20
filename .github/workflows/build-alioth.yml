@@ -136,7 +136,7 @@ env:
   DROIDSPACES_ENABLE: ${{ inputs.droidspaces }}
   NOMOUNT_ENABLE: ${{ inputs.nomount }}
 
-  HOOK_METHOD: "syscall"
+  HOOK_METHOD: ${{ inputs.ksu == 'xxksu' && 'manual' || 'syscall' }}
 
   KPM_ENABLE: "false"
   KPM_INLINE: "false"
@@ -194,6 +194,11 @@ jobs:
           cd "$GITHUB_WORKSPACE/device_kernel"
           D="arch/arm64/configs/${{ env.DEFCONFIG_NAME }}"
           chmod +x scripts/config
+
+          # xxksu hooks are built with KSU_HACK_ARM64_BRANCH_LINK
+          if [ "${{ inputs.ksu }}" == "xxksu" ]; then
+            ./scripts/config --file "$D" --enable CONFIG_KSU_HACK_ARM64_BRANCH_LINK
+          fi
 
           # BakaSU calls security_dump_masked_av, which is only built with CONFIG_AUDIT
           ./scripts/config --file "$D" --enable CONFIG_AUDIT
