@@ -24,6 +24,10 @@ runs:
 
             echo "[+] executed syscall hook successfully."
 
+          # xxksu builds its own hooks, nothing to patch
+          elif [[ ${{ env.HOOK_METHOD }} == "manual" ]]; then
+            echo "[+] manual hook (built into KernelSU), skipped."
+
           else
             echo "[-] please input a vaild option!"
             false
