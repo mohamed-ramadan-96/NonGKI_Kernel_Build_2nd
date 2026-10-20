@@ -275,8 +275,10 @@ jobs:
             sed -i 's/return orig->f_op->remap_file_range(file_in, pos_in, orig, pos_out, len, remap_flags);/return -EOPNOTSUPP;/' "$F"
             sed -i 's/return orig->f_op->remap_file_range(orig, pos_in, file_out, pos_out, len, remap_flags);/return -EOPNOTSUPP;/' "$F"
             sed -i 's/fp->f_op->remap_file_range ? ksu_wrapper_remap_file_range : NULL/NULL/' "$F"
-            sed -i '/p->ops.iopoll = /d' "$F"
-            sed -i '/p->ops.remap_file_range = /d' "$F"
+                        sed -i '/p->ops.iopoll = /i #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)' "$F"
+            sed -i '/p->ops.iopoll = /a #endif' "$F"
+            sed -i '/p->ops.remap_file_range = /i #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)' "$F"
+            sed -i '/p->ops.remap_file_range = /a #endif' "$F"
             echo "[+] file_wrapper.c patched for 4.19"
           fi
 
