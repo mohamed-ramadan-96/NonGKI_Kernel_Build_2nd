@@ -281,6 +281,11 @@ jobs:
             sed -i '/p->ops.remap_file_range = /a #endif' "$F"
             echo "[+] file_wrapper.c patched for 4.19"
           fi
+          S=$(find drivers/kernelsu KernelSU -name seccomp_cache.c 2>/dev/null | head -n1)
+          if [ -n "$S" ]; then
+            sed -i 's/SECCOMP_ARCH_NATIVE_NR/__NR_syscalls/g' "$S"
+            echo "[+] seccomp_cache.c patched for 4.19"
+          fi
 
 
       - name: 🚀 Build Process
