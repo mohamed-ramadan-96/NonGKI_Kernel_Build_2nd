@@ -267,6 +267,16 @@ jobs:
             sed -i 's/copy_from_user_nofault/probe_user_read/g' "$f"
             sed -i 's/copy_to_user_nofault/probe_user_write/g' "$f"
           done
+          F=$(find drivers/kernelsu KernelSU -name file_wrapper.c 2>/dev/null | head -n1)
+          if [ -n "$F" ]; then
+            sed -i 's/return orig->f_op->iopoll(kiocb, spin);/return -EOPNOTSUPP;/' "$F"
+            sed -i 's/fp->f_op->iopoll ? ksu_wrapper_iopoll : NULL/NULL/' "$F"
+            sed -i 's/if (remap_flags \& REMAP_FILE_DEDUP)/if (0)/' "$F"
+            sed -i 's/return orig->f_op->remap_file_range(file_in, pos_in, orig, pos_out, len, remap_flags);/return -EOPNOTSUPP;/' "$F"
+            sed -i 's/return orig->f_op->remap_file_range(orig, pos_in, file_out, pos_out, len, remap_flags);/return -EOPNOTSUPP;/' "$F"
+            sed -i 's/fp->f_op->remap_file_range ? ksu_wrapper_remap_file_range : NULL/NULL/' "$F"
+            echo "[+] file_wrapper.c patched for 4.19"
+          fi
 
 
       - name: 🚀 Build Process
@@ -275,7 +285,7 @@ jobs:
       - name: ✅ Verify config
         run: |
           cd "$GITHUB_WORKSPACE/device_kernel"
-                    for c in CONFIG_KSU CONFIG_KSU_SUSFS CONFIG_KSU_SUSFS_SUS_MAP CONFIG_KSU_SUSFS_SPOOF_UNAME CONFIG_NOMOUNT CONFIG_NTSYNC CONFIG_BYPASS_CHARGING CONFIG_RW_SWAPPINESS; do
+          for c in CONFIG_KSU CONFIG_KSU_SUSFS CONFIG_KSU_SUSFS_SUS_MAP CONFIG_KSU_SUSFS_SPOOF_UNAME CONFIG_NOMOUNT CONFIG_NTSYNC CONFIG_BYPASS_CHARGING CONFIG_RW_SWAPPINESS; do
             grep -q "^$c=y" out/.config && echo "[+] $c enabled" || echo "[-] $c not enabled"
           done
 
