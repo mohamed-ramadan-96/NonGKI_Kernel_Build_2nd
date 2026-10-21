@@ -119,6 +119,9 @@ env:
 
   ZIP_NAME: ${{ inputs.zip_name }}
 
+  CLEAN_SOURCE: ${{ inputs.clean_source }}
+  KSU_PATCH: ${{ inputs.ksu_patch }}
+
   BOOT_SOURCE: ""
 
   NEED_DTBO: false
