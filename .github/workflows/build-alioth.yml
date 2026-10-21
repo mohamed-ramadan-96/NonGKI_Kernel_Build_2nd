@@ -26,7 +26,7 @@ on:
       ksu:
         description: 'KernelSU variant (SUSFS works with bakasu / sukisu only)'
         type: choice
-        options: ['bakasu', 'sukisu', 'next', 'rsuntk', 'xxksu', 'kowsu']
+        options: ['bakasu', 'sukisu', 'next', 'rsuntk', 'xxksu', 'kowsu(broken)']
         default: 'bakasu'
       bakasu_branch:
         description: 'BakaSU branch (used only when ksu = bakasu)'
