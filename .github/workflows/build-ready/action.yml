@@ -106,6 +106,7 @@ runs:
           fi
 
       - name: Cleaned KernelSU and Hook
+        if: env.CLEAN_SOURCE != 'false'
         shell: bash
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
@@ -117,6 +118,7 @@ runs:
           echo "[+] Cleaned hook."
 
       - name: Set KernelSU
+        if: env.KSU_PATCH != 'false'
         shell: bash
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
@@ -249,6 +251,7 @@ runs:
           echo "KERNELSU_METHOD=${{ env.KERNELSU_METHOD }}" >> $GITHUB_ENV
 
       - name: SukiSU-Ultra Fixed
+        if: env.KSU_PATCH != 'false'
         shell: bash
         run: |
           cd $GITHUB_WORKSPACE/device_kernel/drivers/kernelsu
@@ -337,6 +340,7 @@ runs:
           fi
 
       - name: Set KSU and SUSFS for DEFCONFIG
+        if: env.KSU_PATCH != 'false'
         shell: bash
         run: |
           cd $GITHUB_WORKSPACE/device_kernel
