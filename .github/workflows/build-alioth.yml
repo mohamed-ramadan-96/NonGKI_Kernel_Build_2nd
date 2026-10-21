@@ -33,8 +33,12 @@ on:
         type: choice
         options: ['main', 'auto-hook', 'refine-flash', 'renovate/gradle-9.x', 'renovate/maven-group-in-manager', 'sync-susfs', 'sync-upstream', 'uapi/mismatch', 'weblate-main']
         default: 'main'
+      ksu_patch:
+        description: 'Add KernelSU (patch step). OFF = use the KSU already in the kernel'
+        type: boolean
+        default: true
       clean_source:
-        description: 'Clean old KSU/hooks from the source first'
+        description: 'Clean old KSU/hooks from the source first (ignored when KSU patch is OFF)'
         type: boolean
         default: true
       susfs:
