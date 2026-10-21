@@ -33,6 +33,10 @@ on:
         type: choice
         options: ['main', 'auto-hook', 'refine-flash', 'renovate/gradle-9.x', 'renovate/maven-group-in-manager', 'sync-susfs', 'sync-upstream', 'uapi/mismatch', 'weblate-main']
         default: 'main'
+      clean_source:
+        description: 'Clean old KSU/hooks from the source first (keep ON for bpf-staging)'
+        type: boolean
+        default: true
       susfs:
         description: 'Patch SUSFS'
         type: boolean
