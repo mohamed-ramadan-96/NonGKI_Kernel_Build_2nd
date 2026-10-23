@@ -6,7 +6,8 @@ runs:
       - name: Patch Kernel for no-kprobe
         shell: bash
         run: |
-          cd $GITHUB_WORKSPACE/device_kernel
+          set -eo pipefail
+          cd "$GITHUB_WORKSPACE/device_kernel"
 
           # Detect SUSFS is used to enable the SUSFS inline hook
           if [[ ${{ env.SUSFS_ENABLE }} == "true" ]]; then
