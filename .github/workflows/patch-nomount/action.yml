@@ -7,9 +7,14 @@ runs:
         if: env.NOMOUNT_ENABLE == 'true'
         shell: bash
         run: |
-          cd $GITHUB_WORKSPACE/device_kernel/
-          curl https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/setup.sh | bash -s
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/device_kernel/"
+          curl -fsSL https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/dev/kernel/setup.sh | bash -s
 
           echo "CONFIG_NOMOUNT=y" >> ./arch/${{ env.KERNEL_ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
 
+          if ! grep -Rqs --include='*.c' --include='*.h' 'CONFIG_NOMOUNT\|NOMOUNT' fs include kernel drivers 2>/dev/null; then
+            echo "::error::NoMount setup finished but no NoMount source marker was found."
+            exit 1
+          fi
           echo "[+] Patched NoMount for your kernel successfully."
