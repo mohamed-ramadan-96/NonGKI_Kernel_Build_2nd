@@ -95,6 +95,12 @@ runs:
           kernel_source=${{ env.KERNEL_SOURCE_URL }}
           kernel_branch=${{ env.KERNEL_SOURCE_BRANCH }}
           kernel_commit=${{ env.KERNEL_SOURCE_SHA }}
+          anykernel3_source=${{ env.AK3_SOURCE }}
+          anykernel3_branch=${{ env.AK3_BRANCH }}
+          anykernel3_commit=${{ env.AK3_SOURCE_SHA }}
+          clang_source=${{ env.CLANG_SOURCE }}
+          kernelsu_setup_source=${{ env.KERNELSU_SOURCE }}
+          kernelsu_branch=${{ env.KERNELSU_BRANCH }}
           workflow_commit=${{ github.sha }}
           build_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           kernelsu_variant=${{ env.KSU_VARIANT }}
