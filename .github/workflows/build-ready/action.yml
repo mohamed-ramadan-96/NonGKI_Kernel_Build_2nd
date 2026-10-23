@@ -104,6 +104,14 @@ runs:
 
           fi
 
+          if [[ -d "$GITHUB_WORKSPACE/device_kernel/AnyKernel3/.git" ]]; then
+            AK3_SHA="$(git -C "$GITHUB_WORKSPACE/device_kernel/AnyKernel3" rev-parse HEAD)"
+          else
+            AK3_SHA="embedded-or-non-git"
+          fi
+          echo "AK3_SOURCE_SHA=$AK3_SHA" >> "$GITHUB_ENV"
+          echo "[+] AnyKernel3 source SHA: $AK3_SHA"
+
           echo "PACK_METHOD=${{ env.PACK_METHOD }}" >> $GITHUB_ENV
 
       - name: Get DEFCONFIG
