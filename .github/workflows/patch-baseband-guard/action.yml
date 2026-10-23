@@ -7,8 +7,9 @@ runs:
         if: env.BASEBAND_GUARD_ENABLE == 'true'
         shell: bash
         run: |
-          cd $GITHUB_WORKSPACE/device_kernel/
-          wget -O- https://github.com/vc-teahouse/Baseband-guard/raw/main/setup.sh | bash
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/device_kernel/"
+          wget -qO- https://github.com/vc-teahouse/Baseband-guard/raw/main/setup.sh | bash
           echo "CONFIG_BBG=y" >> ./arch/${{ env.KERNEL_ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
 
           if [[ "${{ env.BASEBAND_GUARD_BOOT }}" == "true" ]]; then
@@ -33,4 +34,9 @@ runs:
 
           fi
 
+          if find . -type f -name '*.rej' -print -quit | grep -q .; then
+            echo "::error::Baseband Guard patch left .rej files; refusing to continue."
+            find . -type f -name '*.rej' -print
+            exit 1
+          fi
           echo "[+] Patched Baseband Guard for your kernel successfully."
