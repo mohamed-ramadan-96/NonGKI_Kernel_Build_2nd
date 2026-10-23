@@ -16,7 +16,7 @@ runs:
           echo "::group::[+] Fetching validated kernel source"
           git init device_kernel
           git -C device_kernel remote add origin "$KERNEL_SOURCE"
-          git -C device_kernel fetch --depth=1 origin "$PREBUILD_KERNEL_SHA"
+          git -C device_kernel fetch --depth=1 origin "refs/heads/$KERNEL_BRANCH"
           git -C device_kernel checkout --detach FETCH_HEAD
           git -C device_kernel submodule update --init --recursive
           echo "::endgroup::"
