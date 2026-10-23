@@ -97,15 +97,15 @@ runs:
           kernel_commit=${{ env.KERNEL_SOURCE_SHA }}
           workflow_commit=${{ github.sha }}
           build_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          kernelsu_variant=${{ inputs.ksu }}
-          susfs=${{ inputs.susfs }}
-          rekernel=${{ inputs.rekernel }}
-          nomount=${{ inputs.nomount }}
-          droidspaces=${{ inputs.droidspaces }}
-          baseband_guard=${{ inputs.bbg }}
-          ntsync=${{ inputs.ntsync }}
-          bypass_charging=${{ inputs.bypass_charging }}
-          rw_swappiness=${{ inputs.rw_swappiness }}
+          kernelsu_variant=${{ env.KSU_VARIANT }}
+          susfs=${{ env.SELECTED_SUSFS }}
+          rekernel=${{ env.SELECTED_REKERNEL }}
+          nomount=${{ env.SELECTED_NOMOUNT }}
+          droidspaces=${{ env.SELECTED_DROIDSPACES }}
+          baseband_guard=${{ env.SELECTED_BBG }}
+          ntsync=${{ env.SELECTED_NTSYNC }}
+          bypass_charging=${{ env.SELECTED_BYPASS_CHARGING }}
+          rw_swappiness=${{ env.SELECTED_RW_SWAPPINESS }}
           EOF
           cd tmp
           7za a -mx9 tmp.zip *
