@@ -353,14 +353,117 @@ jobs:
         uses: ./.github/workflows/build-process
 
       - name: ✅ Verify config
+        shell: bash
+        env:
+          WANT_SUSFS: ${{ inputs.susfs }}
+          WANT_REKERNEL: ${{ inputs.rekernel }}
+          WANT_NOMOUNT: ${{ inputs.nomount }}
+          WANT_DROIDSPACES: ${{ inputs.droidspaces }}
+          WANT_BBG: ${{ inputs.bbg }}
+          WANT_NTSYNC: ${{ inputs.ntsync }}
+          WANT_BYPASS_CHARGING: ${{ inputs.bypass_charging }}
+          WANT_RW_SWAPPINESS: ${{ inputs.rw_swappiness }}
         run: |
+          set -euo pipefail
           cd "$GITHUB_WORKSPACE/device_kernel"
-          for c in CONFIG_KSU CONFIG_KSU_SUSFS CONFIG_KSU_SUSFS_SUS_MAP CONFIG_KSU_SUSFS_SPOOF_UNAME CONFIG_NOMOUNT CONFIG_NTSYNC CONFIG_BYPASS_CHARGING CONFIG_RW_SWAPPINESS; do
-            grep -q "^$c=y" out/.config && echo "[+] $c enabled" || echo "[-] $c not enabled"
-          done
+          test -s out/.config || { echo "::error::out/.config is missing."; exit 1; }
+
+          verify_enabled() {
+            local symbol="$1"
+            if ! grep -qx "$symbol=y" out/.config; then
+              echo "::error::Requested feature is enabled in workflow inputs but $symbol is not enabled in out/.config."
+              exit 1
+            fi
+            echo "[+] Verified $symbol=y"
+          }
+
+          [[ "$WANT_SUSFS" != "true" ]] || verify_enabled CONFIG_KSU_SUSFS
+          [[ "$WANT_REKERNEL" != "true" ]] || verify_enabled CONFIG_REKERNEL
+          [[ "$WANT_NOMOUNT" != "true" ]] || verify_enabled CONFIG_NOMOUNT
+          [[ "$WANT_BBG" != "true" ]] || verify_enabled CONFIG_BBG
+          [[ "$WANT_NTSYNC" != "true" ]] || verify_enabled CONFIG_NTSYNC
+          [[ "$WANT_BYPASS_CHARGING" != "true" ]] || verify_enabled CONFIG_BYPASS_CHARGING
+          [[ "$WANT_RW_SWAPPINESS" != "true" ]] || verify_enabled CONFIG_RW_SWAPPINESS
+
+          if [[ "$WANT_DROIDSPACES" == "true" ]]; then
+            test -s arch/arm64/configs/droidspaces.config || { echo "::error::Droidspaces config is missing."; exit 1; }
+            echo "[+] Verified Droidspaces config is present."
+          fi
 
       - name: 🔩 Pack Process
         uses: ./.github/workflows/pack-process
 
+      - name: 📦 Validate package and generate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE="$GITHUB_WORKSPACE/device_kernel/${PACK_NAME:?PACK_NAME was not set by pack step}"
+          if [[ ! -s "$PACKAGE" ]]; then
+            echo "::error::Expected package was not created: $PACKAGE"
+            exit 1
+          fi
+          case "$PACKAGE" in
+            *.zip)
+              unzip -t "$PACKAGE"
+              if ! unzip -Z1 "$PACKAGE" | grep -Eq '(^|/)(Image|Image\.gz|Image\.gz-dtb|Image-dtb); then
+                echo "::error::Package does not contain a recognized kernel image."
+                exit 1
+              fi
+              ;;
+            *.img)
+              file "$PACKAGE"
+              ;;
+            *)
+              echo "::error::Unexpected package extension: $PACKAGE"
+              exit 1
+              ;;
+          esac
+          sha256sum "$PACKAGE" | tee "$PACKAGE.sha256"
+          {
+            echo "package=$(basename "$PACKAGE")"
+            echo "sha256=$(sha256sum "$PACKAGE" | awk '{print $1}')"
+            echo "kernel_source=$KERNEL_SOURCE_URL"
+            echo "kernel_branch=$KERNEL_SOURCE_BRANCH"
+            echo "kernel_commit=$KERNEL_SOURCE_SHA"
+            echo "workflow_commit=$GITHUB_SHA"
+            echo "build_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "device=$DEVICE_CODENAME"
+            echo "kernel_version=$KERNEL_VERSION"
+            echo "kernelsu_variant=${{ inputs.ksu }}"
+            echo "susfs=${{ inputs.susfs }}"
+            echo "rekernel=${{ inputs.rekernel }}"
+            echo "nomount=${{ inputs.nomount }}"
+            echo "droidspaces=${{ inputs.droidspaces }}"
+            echo "baseband_guard=${{ inputs.bbg }}"
+            echo "ntsync=${{ inputs.ntsync }}"
+            echo "bypass_charging=${{ inputs.bypass_charging }}"
+            echo "rw_swappiness=${{ inputs.rw_swappiness }}"
+          } > "$GITHUB_WORKSPACE/device_kernel/build-info.txt"
+          echo "[+] Package validated: $PACKAGE"
+
+      - name: 📄 Upload build metadata and checksums
+        uses: actions/upload-artifact@v7
+        with:
+          name: alioth-build-metadata
+          path: |
+            device_kernel/build-info.txt
+            device_kernel/${{ env.PACK_NAME }}.sha256
+          if-no-files-found: error
+
       - name: ✏️ Upload Artifacts
         uses: ./.github/workflows/upload-files
+
+      - name: 🧯 Upload failure diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: alioth-failure-diagnostics
+          path: |
+            device_kernel/error.log
+            device_kernel/out/.config
+            device_kernel/build-info.txt
+            device_kernel/*.rej
+            device_kernel/*.orig
+            device_kernel/rej_files_*.tar.gz
+            device_kernel/compile_commands.json
+          if-no-files-found: warn
