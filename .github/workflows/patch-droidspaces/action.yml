@@ -7,7 +7,10 @@ runs:
         if: env.DROIDSPACES_ENABLE == 'true'
         shell: bash
         run: |
-          cd $GITHUB_WORKSPACE/device_kernel/
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/device_kernel/"
+          test -s /tmp/Patches/Droidspaces/droidspaces.config || { echo "::error::Required Droidspaces config is missing."; exit 1; }
+          test -s /tmp/Patches/Droidspaces/fix_restore_cgroup_file_prefix_handling.cocci || { echo "::error::Required Droidspaces cgroup patch is missing."; exit 1; }
           cp /tmp/Patches/Droidspaces/droidspaces.config ./arch/"${{ env.KERNEL_ARCH }}"/configs/
 
           cgroup_patch(){
@@ -43,4 +46,9 @@ runs:
 
           fi
 
+          if find . -type f -name '*.rej' -print -quit | grep -q .; then
+            echo "::error::Droidspaces patch left .rej files; refusing to continue."
+            find . -type f -name '*.rej' -print
+            exit 1
+          fi
           echo "[+] Patched Droidspaces for your kernel successfully."
