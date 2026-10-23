@@ -4,87 +4,87 @@ on:
   workflow_dispatch:
     inputs:
       kernel_tree_preset:
-        description: '[Kernel Source] Select the kernel repository preset'
+        description: 'Kernel Tree'
         type: choice
         options: ['Default Kernel Tree', 're-noroi/kernel_sm8250', 'Custom URL']
         default: 'Default Kernel Tree'
       kernel_source:
-        description: '[Kernel Source] Custom repository URL — required only for Custom URL'
+        description: 'Custom Kernel Tree URL (leave empty to use preset)'
         type: string
         default: ''
       kernel_branch_preset:
-        description: '[Kernel Source] Select a branch preset'
+        description: 'Kernel Branch'
         type: choice
         options: ['bpf-staging', 'bpf-testing', 'Custom Branch']
         default: 'bpf-staging'
       kernel_branch:
-        description: '[Kernel Source] Custom branch name — required only for Custom Branch'
+        description: 'Custom Kernel Branch (leave empty to use preset)'
         type: string
         default: ''
       ak3_source:
-        description: '[Packaging] AnyKernel3 repository URL'
+        description: 'AnyKernel3 URL'
         type: string
         default: 'https://github.com/re-noroi/anykernel3-test'
       ak3_branch:
-        description: '[Packaging] AnyKernel3 branch name'
+        description: 'AnyKernel3 Branch'
         type: string
         default: 'main'
       zip_name:
-        description: '[Packaging] Output ZIP filename without the .zip extension'
+        description: 'Zip name without .zip'
         type: string
         default: 'Aliothfake-ko-j3s'
       ksu:
-        description: '[Kernel Features] KernelSU variant (SUSFS supports BakaSU/SukiSU only)'
+        description: 'KernelSU variant (SUSFS works with bakasu / sukisu only)'
         type: choice
         options: ['bakasu', 'sukisu', 'next', 'rsuntk', 'xxksu', 'kowsu(broken)']
         default: 'bakasu'
       bakasu_branch:
-        description: '[Kernel Features] BakaSU branch (used only when BakaSU is selected)'
+        description: 'BakaSU branch (used only when ksu = bakasu)'
         type: choice
         options: ['main', 'auto-hook', 'refine-flash', 'renovate/gradle-9.x', 'renovate/maven-group-in-manager', 'sync-susfs', 'sync-upstream', 'uapi/mismatch', 'weblate-main']
         default: 'main'
       ksu_patch:
-        description: '[Kernel Features] Install the selected KernelSU variant; OFF keeps the source tree version'
+        description: 'Add KernelSU (patch step). OFF = use the KSU already in the kernel'
         type: boolean
         default: true
       clean_source:
-        description: '[Kernel Features] Clean existing KernelSU/hooks before install; ignored when install is OFF'
+        description: 'Clean old KSU/hooks from the source first (ignored when KSU patch is OFF)'
         type: boolean
         default: true
       susfs:
-        description: '[Kernel Features] Apply SUSFS (BakaSU/SukiSU only)'
+        description: 'Patch SUSFS'
         type: boolean
         default: false
       rekernel:
-        description: '[Kernel Features] Enable Re:Kernel (tombstone apps)'
+        description: 'Re:Kernel (for tombstone apps)'
         type: boolean
         default: false
       bbg:
-        description: '[Kernel Features] Enable Baseband Guard'
+        description: 'Baseband Guard'
         type: boolean
         default: false
       nomount:
-        description: '[Kernel Features] Apply NoMount using its external setup script'
+        description: 'Enable NoMount (external patch action)'
         type: boolean
         default: false
       droidspaces:
-        description: '[Kernel Features] Apply Droidspaces container support'
+        description: 'Droidspaces (containers)'
         type: boolean
         default: false
       ntsync:
-        description: '[Build Options] Enable NTSYNC'
+        description: 'Enable NTSYNC'
         type: boolean
         default: false
       bypass_charging:
-        description: '[Build Options] Enable Bypass Charging'
+        description: 'Enable Bypass Charging'
         type: boolean
         default: false
       rw_swappiness:
-        description: '[Build Options] Enable RW Swappiness'
+        description: 'Enable RW Swappiness'
         type: boolean
         default: false
       battery:
-        description: '[Build Options] Select the battery profile'
+        description: 'Battery profile'
         type: choice
         options: ['5000-apollo', '4520-stock']
         default: '5000-apollo'
