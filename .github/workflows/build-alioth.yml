@@ -100,6 +100,15 @@ env:
 
   KERNEL_SOURCE: ${{ inputs.kernel_source != '' && inputs.kernel_source || inputs.kernel_tree_preset == 'Default Kernel Tree' && 'https://github.com/mohamed-ramadan-96/kernel_sm8250.git' || inputs.kernel_tree_preset == 're-noroi/kernel_sm8250' && 'https://github.com/re-noroi/kernel_sm8250' || '' }}
   KERNEL_BRANCH: ${{ inputs.kernel_branch != '' && inputs.kernel_branch || inputs.kernel_branch_preset != 'Custom Branch' && inputs.kernel_branch_preset || '' }}
+  KSU_VARIANT: ${{ inputs.ksu }}
+  SELECTED_SUSFS: ${{ inputs.susfs }}
+  SELECTED_REKERNEL: ${{ inputs.rekernel }}
+  SELECTED_NOMOUNT: ${{ inputs.nomount }}
+  SELECTED_DROIDSPACES: ${{ inputs.droidspaces }}
+  SELECTED_BBG: ${{ inputs.bbg }}
+  SELECTED_NTSYNC: ${{ inputs.ntsync }}
+  SELECTED_BYPASS_CHARGING: ${{ inputs.bypass_charging }}
+  SELECTED_RW_SWAPPINESS: ${{ inputs.rw_swappiness }}
 
   CLANG_SOURCE: "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/LLVM-19.1.7-Linux-X64.tar.xz"
   CLANG_BRANCH: ""
