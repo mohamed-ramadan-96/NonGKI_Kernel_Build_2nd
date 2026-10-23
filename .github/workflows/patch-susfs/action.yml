@@ -52,7 +52,8 @@ runs:
         if: env.SUSFS_ENABLE == 'true'
         shell: bash
         run: |
-          cd $GITHUB_WORKSPACE/device_kernel/
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/device_kernel/"
           SUSFS_VERSION="2.2.00"
 
           PACK_FILES(){
@@ -77,12 +78,20 @@ runs:
           else
             cp /tmp/Patches/Patch/susfs_patch_to_${{ env.KERNEL_VERSION }}.patch ./
 
-            patch -p1 < susfs_patch_to_${{ env.KERNEL_VERSION }}.patch || true
+            patch --batch --forward -p1 < susfs_patch_to_${{ env.KERNEL_VERSION }}.patch
             echo "[+] SUSFS Patch completed."
 
           fi
 
-          # Patch .rej find
+          # A patch that leaves rejects is not considered successful, regardless of debugger mode.
+          mapfile -t PATCH_REJECTS < <(find . -type f -name '*.rej' -print)
+          if (( ${#PATCH_REJECTS[@]} > 0 )); then
+            printf '[-] Patch reject file: %s\\n' "${PATCH_REJECTS[@]}"
+            echo "::error::SUSFS patch left reject files; refusing to continue."
+            exit 1
+          fi
+
+          # Patch diagnostics
           if [[ "${{ env.BUILD_DEBUGGER }}" == "true" ]]; then
             echo "[+] Checking SUSFS v${SUSFS_VERSION} rej files..."
             mapfile -t REJ_FILES < <(find . -type f -name "*.rej")
