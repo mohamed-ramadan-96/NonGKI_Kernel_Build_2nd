@@ -269,7 +269,7 @@ jobs:
             "$GITHUB_WORKSPACE/device_kernel/KernelSU-BakaSU" \
             "$GITHUB_WORKSPACE/mkboottools"; do
             if [[ -e "$dir/.git" ]] && SHA="$(git -C "$dir" rev-parse HEAD 2>/dev/null)"; then
-              printf '%s=%s\\n' "${dir#"$GITHUB_WORKSPACE/"}" "$SHA" | tee -a "$OUT"
+              printf '%s=%s\n' "${dir#"$GITHUB_WORKSPACE/"}" "$SHA" | tee -a "$OUT"
             fi
           done
           if [[ ! -s "$OUT" ]]; then
