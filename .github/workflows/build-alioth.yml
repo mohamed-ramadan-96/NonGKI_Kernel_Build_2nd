@@ -323,6 +323,30 @@ jobs:
       - name: 🛡️ Patch Kernel of NoMount
         uses: ./.github/workflows/patch-nomount
 
+      - name: 🧾 Audit patch results
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/device_kernel"
+
+          # Any leftover reject/original files indicate a patch that needs review.
+          mapfile -t PATCH_ARTIFACTS < <(find . -type f \\( -name '*.rej' -o -name '*.orig' \\) -print)
+          if (( ${#PATCH_ARTIFACTS[@]} > 0 )); then
+            printf '::error::Patch residue detected: %s\\n' "${PATCH_ARTIFACTS[@]}"
+            printf '%s\\n' "${PATCH_ARTIFACTS[@]}"
+            exit 1
+          fi
+
+          if [[ "${{ inputs.rekernel }}" == "true" ]] && ! grep -Rqs --include='*.c' --include='*.h' 'CONFIG_REKERNEL\|REKERNEL' kernel include; then
+            echo "::error::Re:Kernel was requested but no Re:Kernel source marker was found."
+            exit 1
+          fi
+          if [[ "${{ inputs.nomount }}" == "true" ]] && ! grep -Rqs --include='*.c' --include='*.h' 'NOMOUNT' fs include kernel drivers; then
+            echo "::error::NoMount was requested but no NoMount source marker was found."
+            exit 1
+          fi
+          echo "[+] Patch audit passed; no .rej/.orig files remain."
+
       - name: 🩹 Fix kowsu on 4.19
         if: ${{ inputs.ksu == 'kowsu' }}
         run: |
