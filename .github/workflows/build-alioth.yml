@@ -226,7 +226,7 @@ jobs:
             echo "::error::Kernel source URL and branch must both be set."
             exit 1
           fi
-          if [[ ! "$SOURCE_URL" =~ ^https://github\.com/[^/]+/[^/]+/?(\.git)?$ ]]; then
+          if [[ ! "$SOURCE_URL" =~ ^https://[^/[:space:]]+/.+ ]] || [[ "$SOURCE_URL" =~ [[:space:]] ]]; then
             echo "::error::Kernel source must be a GitHub HTTPS repository URL."
             exit 1
           fi
