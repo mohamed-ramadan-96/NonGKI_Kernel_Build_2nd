@@ -98,8 +98,8 @@ env:
   CUSTOM_CMDS: "LLVM=1 LLVM_IAS=1"
   EXTRA_CMDS: ""
 
-  KERNEL_SOURCE: ${{ inputs.kernel_source != '' && inputs.kernel_source || inputs.kernel_tree_preset == 'Default Kernel Tree' && 'https://github.com/mohamed-ramadan-96/kernel_sm8250.git' || inputs.kernel_tree_preset == 're-noroi/kernel_sm8250' && 'https://github.com/re-noroi/kernel_sm8250' || '' }}
-  KERNEL_BRANCH: ${{ inputs.kernel_branch != '' && inputs.kernel_branch || inputs.kernel_branch_preset != 'Custom Branch' && inputs.kernel_branch_preset || '' }}
+  KERNEL_SOURCE: ${{ inputs.kernel_tree_preset == 'Custom URL' && inputs.kernel_source || inputs.kernel_tree_preset == 'Default Kernel Tree' && 'https://github.com/mohamed-ramadan-96/kernel_sm8250.git' || inputs.kernel_tree_preset == 're-noroi/kernel_sm8250' && 'https://github.com/re-noroi/kernel_sm8250' || '' }}
+  KERNEL_BRANCH: ${{ inputs.kernel_branch_preset == 'Custom Branch' && inputs.kernel_branch || inputs.kernel_branch_preset != 'Custom Branch' && inputs.kernel_branch_preset || '' }}
   KSU_VARIANT: ${{ inputs.ksu }}
   SELECTED_SUSFS: ${{ inputs.susfs }}
   SELECTED_REKERNEL: ${{ inputs.rekernel }}
