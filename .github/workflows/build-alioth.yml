@@ -356,7 +356,7 @@ jobs:
           mapfile -t PATCH_ARTIFACTS < <(find . -type f \( -name '*.rej' -o -name '*.orig' \) -print)
           if (( ${#PATCH_ARTIFACTS[@]} > 0 )); then
             printf '::error::Patch residue detected: %s\n' "${PATCH_ARTIFACTS[@]}"
-            printf '%s\\n' "${PATCH_ARTIFACTS[@]}"
+            printf '%s\n' "${PATCH_ARTIFACTS[@]}"
             exit 1
           fi
 
