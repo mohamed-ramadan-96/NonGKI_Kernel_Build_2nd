@@ -6,28 +6,54 @@ runs:
       - name: Get Kernel
         shell: bash
         run: |
-          cd $GITHUB_WORKSPACE
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
 
-          echo "::group::[+] Starting git clone kernel source code..."
-          git clone --recursive "${{ env.KERNEL_SOURCE }}" -b "${{ env.KERNEL_BRANCH }}" device_kernel --depth=1
+          : "${KERNEL_SOURCE:?Kernel source URL is empty}"
+          : "${KERNEL_BRANCH:?Kernel branch is empty}"
+          : "${PREBUILD_KERNEL_SHA:?Pre-build source validation did not resolve a commit SHA}"
 
-          if [[ -f "device_kernel/.gitmodules" ]]; then
-            cd device_kernel
-            git submodule init
-            git submodule update
-            cd ../
-            echo "[+] Detected GitModules."
-
-          fi
+          echo "::group::[+] Fetching validated kernel source"
+          git init device_kernel
+          git -C device_kernel remote add origin "$KERNEL_SOURCE"
+          git -C device_kernel fetch --depth=1 origin "$PREBUILD_KERNEL_SHA"
+          git -C device_kernel checkout --detach FETCH_HEAD
+          git -C device_kernel submodule update --init --recursive
           echo "::endgroup::"
-          echo "[+] Kernel source code is cloned."
 
-          # Get Kernel Version
+          ACTUAL_KERNEL_SHA="$(git -C device_kernel rev-parse HEAD)"
+          if [[ "$ACTUAL_KERNEL_SHA" != "$PREBUILD_KERNEL_SHA" ]]; then
+            echo "::error::Kernel checkout SHA ($ACTUAL_KERNEL_SHA) does not match validated SHA ($PREBUILD_KERNEL_SHA)."
+            exit 1
+          fi
 
-          KERNEL_VERSION=$(head -n 3 $GITHUB_WORKSPACE/device_kernel/Makefile | grep -E 'VERSION|PATCHLEVEL' | awk '{print $3}' | paste -sd '.')
-          echo "KERNEL_VERSION=$(head -n 3 device_kernel/Makefile | grep -E 'VERSION|PATCHLEVEL' | awk '{print $3}' | paste -sd '.')" >> $GITHUB_ENV
-          echo "FIRST_VERSION=$(echo "$KERNEL_VERSION" | awk -F '.' '{print $1}')" >> $GITHUB_ENV
-          echo "SECOND_VERSION=$(echo "$KERNEL_VERSION" | awk -F '.' '{print $2}')" >> $GITHUB_ENV
+          # Validate the source tree before any patch/build steps run.
+          REQUIRED_FILES=(
+            "Makefile"
+            "arch/arm64/configs/${DEFCONFIG_NAME}"
+            "arch/arm64/boot/dts/vendor/qcom/alioth-sm8250.dtsi"
+          )
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [[ ! -s "device_kernel/$file" ]]; then
+              echo "::error::Selected source is missing required alioth kernel file: $file"
+              exit 1
+            fi
+          done
+          if ! grep -Eq '^[[:space:]]*VERSION[[:space:]]*=' device_kernel/Makefile; then
+            echo "::error::Kernel Makefile does not contain a VERSION field."
+            exit 1
+          fi
+
+          KERNEL_VERSION="$(head -n 3 device_kernel/Makefile | grep -E 'VERSION|PATCHLEVEL' | awk '{print $3}' | paste -sd '.')"
+          echo "KERNEL_VERSION=$KERNEL_VERSION" >> "$GITHUB_ENV"
+          echo "FIRST_VERSION=$(echo "$KERNEL_VERSION" | awk -F '.' '{print $1}')" >> "$GITHUB_ENV"
+          echo "SECOND_VERSION=$(echo "$KERNEL_VERSION" | awk -F '.' '{print $2}')" >> "$GITHUB_ENV"
+          echo "KERNEL_SOURCE_URL=$KERNEL_SOURCE" >> "$GITHUB_ENV"
+          echo "KERNEL_SOURCE_BRANCH=$KERNEL_BRANCH" >> "$GITHUB_ENV"
+          echo "KERNEL_SOURCE_SHA=$ACTUAL_KERNEL_SHA" >> "$GITHUB_ENV"
+          echo "[+] Validated alioth source: $KERNEL_SOURCE ($KERNEL_BRANCH)"
+          echo "[+] Exact kernel commit: $ACTUAL_KERNEL_SHA"
+          echo "[+] Kernel version: $KERNEL_VERSION"
 
       - name: Get Kernel Arch
         shell: bash
