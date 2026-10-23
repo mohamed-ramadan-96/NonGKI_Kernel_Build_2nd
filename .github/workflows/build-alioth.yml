@@ -268,7 +268,7 @@ jobs:
             "$GITHUB_WORKSPACE/device_kernel/KernelSU-SukiSU-Ultra" \
             "$GITHUB_WORKSPACE/device_kernel/KernelSU-BakaSU" \
             "$GITHUB_WORKSPACE/mkboottools"; do
-            if [[ -e "$dir" ]] && SHA="$(git -C "$dir" rev-parse HEAD 2>/dev/null)"; then
+            if [[ -e "$dir/.git" ]] && SHA="$(git -C "$dir" rev-parse HEAD 2>/dev/null)"; then
               printf '%s=%s\\n' "${dir#"$GITHUB_WORKSPACE/"}" "$SHA" | tee -a "$OUT"
             fi
           done
@@ -503,6 +503,7 @@ jobs:
           name: alioth-build-metadata
           path: |
             device_kernel/build-info.txt
+            dependency-revisions.txt
             device_kernel/${{ env.PACK_NAME }}.sha256
           if-no-files-found: error
 
