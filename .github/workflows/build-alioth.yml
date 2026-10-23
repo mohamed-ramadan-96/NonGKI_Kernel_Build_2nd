@@ -253,6 +253,29 @@ jobs:
       - name: ⚙️ Get necessary tools
         uses: ./.github/workflows/build-ready
 
+      - name: 🧾 Capture dependency revisions
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/dependency-revisions.txt"
+          : > "$OUT"
+          for dir in \
+            "$GITHUB_WORKSPACE/device_kernel/AnyKernel3" \
+            "$GITHUB_WORKSPACE/device_kernel/KernelSU" \
+            "$GITHUB_WORKSPACE/device_kernel/KernelSU-Next" \
+            "$GITHUB_WORKSPACE/device_kernel/KernelSU-rsuntk" \
+            "$GITHUB_WORKSPACE/device_kernel/KernelSU-xxKSU" \
+            "$GITHUB_WORKSPACE/device_kernel/KernelSU-SukiSU-Ultra" \
+            "$GITHUB_WORKSPACE/device_kernel/KernelSU-BakaSU" \
+            "$GITHUB_WORKSPACE/mkboottools"; do
+            if [[ -e "$dir" ]] && SHA="$(git -C "$dir" rev-parse HEAD 2>/dev/null)"; then
+              printf '%s=%s\\n' "${dir#"$GITHUB_WORKSPACE/"}" "$SHA" | tee -a "$OUT"
+            fi
+          done
+          if [[ ! -s "$OUT" ]]; then
+            echo "No separately cloned Git dependencies detected." | tee "$OUT"
+          fi
+
       - name: 🪝 Patch Kernel of SUSFS
         uses: ./.github/workflows/patch-susfs
 
