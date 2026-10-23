@@ -7,7 +7,8 @@ runs:
         if: env.REKERNEL_ENABLE == 'true'
         shell: bash
         run: |
-          cd $GITHUB_WORKSPACE/device_kernel/
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/device_kernel/"
 
           if grep -q "cgroup_task_frozen" "kernel/cgroup.c" || grep -q "cgroup_task_frozen" "kernel/cgroup/cgroup.c"; then
 
@@ -15,9 +16,12 @@ runs:
             bash rekernel_patches.sh
 
             cp /tmp/Patches/Rekernel/rekernel_extra.patch ./
-            patch -p1 < rekernel_extra.patch || true
+            patch --batch --forward -p1 < rekernel_extra.patch
 
-            echo "CONFIG_REKERNEL=y" >> ./arch/${{ env.KERNEL_ARCH }}/configs/${{ env.DEFCONFIG_NAME }}
+            DEFCONFIG="arch/${{ env.KERNEL_ARCH }}/configs/${{ env.DEFCONFIG_NAME }}"
+            if ! grep -qx 'CONFIG_REKERNEL=y' "$DEFCONFIG"; then
+              echo "CONFIG_REKERNEL=y" >> "$DEFCONFIG"
+            fi
 
             echo "[+] Patched Re:Kernel for your kernel successfully."
           else

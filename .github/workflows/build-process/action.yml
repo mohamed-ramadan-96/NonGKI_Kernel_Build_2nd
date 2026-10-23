@@ -33,7 +33,8 @@ runs:
       - name: Build Kernel
         shell: bash
         run: |
-          cd $GITHUB_WORKSPACE/device_kernel/
+          cd "$GITHUB_WORKSPACE/device_kernel/"
+          set -o pipefail
 
           # Function
           BUILD_PROCESS(){
@@ -97,6 +98,15 @@ runs:
                 echo "======================="
                 make O=out ARCH="${{ env.KERNEL_ARCH }}" olddefconfig
             fi
+          fi
+
+          # Verify Re:Kernel configuration after all config merges.
+          if [[ "${{ env.REKERNEL_ENABLE }}" == "true" ]]; then
+            if ! grep -qx 'CONFIG_REKERNEL=y' out/.config; then
+              echo "[-] Re:Kernel is enabled in the workflow but CONFIG_REKERNEL=y is missing from out/.config."
+              exit 1
+            fi
+            echo "[+] Verified CONFIG_REKERNEL=y in out/.config."
           fi
 
           # KPM Detect
