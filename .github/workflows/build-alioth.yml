@@ -3,14 +3,24 @@ name: Build Poco F3 (alioth)
 on:
   workflow_dispatch:
     inputs:
+      kernel_tree_preset:
+        description: 'Kernel Tree'
+        type: choice
+        options: ['Default Kernel Tree', 're-noroi/kernel_sm8250', 'Custom URL']
+        default: 'Default Kernel Tree'
       kernel_source:
-        description: 'Kernel Tree (git URL)'
+        description: 'Custom Kernel Tree URL (leave empty to use preset)'
         type: string
-        default: 'https://github.com/mohamed-ramadan-96/kernel_sm8250.git'
-      kernel_branch:
-        description: 'Kernel Tree Branch'
-        type: string
+        default: ''
+      kernel_branch_preset:
+        description: 'Kernel Branch'
+        type: choice
+        options: ['bpf-staging', 'bpf-testing', 'Custom Branch']
         default: 'bpf-staging'
+      kernel_branch:
+        description: 'Custom Kernel Branch (leave empty to use preset)'
+        type: string
+        default: ''
       ak3_source:
         description: 'AnyKernel3 URL'
         type: string
@@ -88,8 +98,8 @@ env:
   CUSTOM_CMDS: "LLVM=1 LLVM_IAS=1"
   EXTRA_CMDS: ""
 
-  KERNEL_SOURCE: ${{ inputs.kernel_source }}
-  KERNEL_BRANCH: ${{ inputs.kernel_branch }}
+  KERNEL_SOURCE: ${{ inputs.kernel_source != '' && inputs.kernel_source || inputs.kernel_tree_preset == 'Default Kernel Tree' && 'https://github.com/mohamed-ramadan-96/kernel_sm8250.git' || inputs.kernel_tree_preset == 're-noroi/kernel_sm8250' && 'https://github.com/re-noroi/kernel_sm8250' || '' }}
+  KERNEL_BRANCH: ${{ inputs.kernel_branch != '' && inputs.kernel_branch || inputs.kernel_branch_preset != 'Custom Branch' && inputs.kernel_branch_preset || '' }}
 
   CLANG_SOURCE: "https://github.com/llvm/llvm-project/releases/download/llvmorg-19.1.7/LLVM-19.1.7-Linux-X64.tar.xz"
   CLANG_BRANCH: ""
@@ -185,6 +195,14 @@ jobs:
         run: |
           if [ "${{ inputs.susfs }}" == "true" ] && [ "${{ inputs.ksu }}" != "bakasu" ] && [ "${{ inputs.ksu }}" != "sukisu" ]; then
             echo "::error::SUSFS is only supported with bakasu or sukisu"
+            exit 1
+          fi
+          if [ "${{ inputs.kernel_tree_preset }}" == "Custom URL" ] && [ -z "${{ inputs.kernel_source }}" ]; then
+            echo "::error::Custom URL selected, but Kernel Tree URL is empty"
+            exit 1
+          fi
+          if [ "${{ inputs.kernel_branch_preset }}" == "Custom Branch" ] && [ -z "${{ inputs.kernel_branch }}" ]; then
+            echo "::error::Custom Branch selected, but Kernel Branch is empty"
             exit 1
           fi
 
