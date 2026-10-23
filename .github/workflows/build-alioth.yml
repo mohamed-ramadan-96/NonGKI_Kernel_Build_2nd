@@ -197,6 +197,14 @@ jobs:
             echo "::error::SUSFS is only supported with bakasu or sukisu"
             exit 1
           fi
+          if [ "${{ inputs.kernel_tree_preset }}" == "Custom URL" ] && [ -z "${{ inputs.kernel_source }}" ]; then
+            echo "::error::Custom URL selected, but Kernel Tree URL is empty"
+            exit 1
+          fi
+          if [ "${{ inputs.kernel_branch_preset }}" == "Custom Branch" ] && [ -z "${{ inputs.kernel_branch }}" ]; then
+            echo "::error::Custom Branch selected, but Kernel Branch is empty"
+            exit 1
+          fi
 
       - name: ⌛️ Compilation environment preparation
         uses: ./.github/workflows/build-env
