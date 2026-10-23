@@ -113,6 +113,13 @@ runs:
           bypass_charging=${{ env.SELECTED_BYPASS_CHARGING }}
           rw_swappiness=${{ env.SELECTED_RW_SWAPPINESS }}
           EOF
+          if [[ -s "$GITHUB_WORKSPACE/dependency-revisions.txt" ]]; then
+            {
+              echo
+              echo "dependency_revisions:"
+              cat "$GITHUB_WORKSPACE/dependency-revisions.txt"
+            } >> tmp/build-info.txt
+          fi
           cd tmp
           7za a -mx9 tmp.zip *
           cd ..
