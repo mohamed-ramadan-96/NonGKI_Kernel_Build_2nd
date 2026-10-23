@@ -4,87 +4,87 @@ on:
   workflow_dispatch:
     inputs:
       kernel_tree_preset:
-        description: 'Kernel Tree'
+        description: '[Source] Kernel tree preset'
         type: choice
         options: ['Default Kernel Tree', 're-noroi/kernel_sm8250', 'Custom URL']
         default: 'Default Kernel Tree'
       kernel_source:
-        description: 'Custom Kernel Tree URL (leave empty to use preset)'
+        description: '[Source] Custom Git URL (required when Custom URL is selected; otherwise leave blank)'
         type: string
         default: ''
       kernel_branch_preset:
-        description: 'Kernel Branch'
+        description: '[Source] Kernel branch preset'
         type: choice
         options: ['bpf-staging', 'bpf-testing', 'Custom Branch']
         default: 'bpf-staging'
       kernel_branch:
-        description: 'Custom Kernel Branch (leave empty to use preset)'
+        description: '[Source] Custom branch (required when Custom Branch is selected; otherwise leave blank)'
         type: string
         default: ''
       ak3_source:
-        description: 'AnyKernel3 URL'
+        description: '[Packaging] AnyKernel3 repository URL'
         type: string
         default: 'https://github.com/re-noroi/anykernel3-test'
       ak3_branch:
-        description: 'AnyKernel3 Branch'
+        description: '[Packaging] AnyKernel3 branch'
         type: string
         default: 'main'
       zip_name:
-        description: 'Zip name without .zip'
+        description: '[Packaging] Output ZIP name (without .zip)'
         type: string
         default: 'Aliothfake-ko-j3s'
       ksu:
-        description: 'KernelSU variant (SUSFS works with bakasu / sukisu only)'
+        description: '[KernelSU] Variant (SUSFS supports BakaSU/SukiSU only)'
         type: choice
         options: ['bakasu', 'sukisu', 'next', 'rsuntk', 'xxksu', 'kowsu(broken)']
         default: 'bakasu'
       bakasu_branch:
-        description: 'BakaSU branch (used only when ksu = bakasu)'
+        description: '[KernelSU] BakaSU branch (used only for BakaSU)'
         type: choice
         options: ['main', 'auto-hook', 'refine-flash', 'renovate/gradle-9.x', 'renovate/maven-group-in-manager', 'sync-susfs', 'sync-upstream', 'uapi/mismatch', 'weblate-main']
         default: 'main'
       ksu_patch:
-        description: 'Add KernelSU (patch step). OFF = use the KSU already in the kernel'
+        description: '[KernelSU] Install selected KernelSU (OFF keeps the source tree KernelSU)'
         type: boolean
         default: true
       clean_source:
-        description: 'Clean old KSU/hooks from the source first (ignored when KSU patch is OFF)'
+        description: '[KernelSU] Clean old KSU/hooks first (ignored when KernelSU install is OFF)'
         type: boolean
         default: true
       susfs:
-        description: 'Patch SUSFS'
+        description: '[Patches] Apply SUSFS (BakaSU/SukiSU only)'
         type: boolean
         default: false
       rekernel:
-        description: 'Re:Kernel (for tombstone apps)'
+        description: '[Patches] Enable Re:Kernel (tombstone apps)'
         type: boolean
         default: false
       bbg:
-        description: 'Baseband Guard'
+        description: '[Patches] Enable Baseband Guard'
         type: boolean
         default: false
       nomount:
-        description: 'Enable NoMount (external patch action)'
+        description: '[Patches] Apply NoMount (external setup script)'
         type: boolean
         default: false
       droidspaces:
-        description: 'Droidspaces (containers)'
+        description: '[Patches] Apply Droidspaces (containers)'
         type: boolean
         default: false
       ntsync:
-        description: 'Enable NTSYNC'
+        description: '[Config] Enable NTSYNC'
         type: boolean
         default: false
       bypass_charging:
-        description: 'Enable Bypass Charging'
+        description: '[Config] Enable Bypass Charging'
         type: boolean
         default: false
       rw_swappiness:
-        description: 'Enable RW Swappiness'
+        description: '[Config] Enable RW Swappiness'
         type: boolean
         default: false
       battery:
-        description: 'Battery profile'
+        description: '[Device] Battery profile'
         type: choice
         options: ['5000-apollo', '4520-stock']
         default: '5000-apollo'
@@ -205,6 +205,38 @@ jobs:
             echo "::error::Custom Branch selected, but Kernel Branch is empty"
             exit 1
           fi
+
+      - name: 🔎 Validate kernel source
+        shell: bash
+        env:
+          SOURCE_URL: ${{ env.KERNEL_SOURCE }}
+          SOURCE_BRANCH: ${{ env.KERNEL_BRANCH }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$SOURCE_URL" || -z "$SOURCE_BRANCH" ]]; then
+            echo "::error::Kernel source URL and branch must both be set."
+            exit 1
+          fi
+          if [[ ! "$SOURCE_URL" =~ ^https://github\.com/[^/]+/[^/]+/?(\.git)?$ ]]; then
+            echo "::error::Kernel source must be a GitHub HTTPS repository URL."
+            exit 1
+          fi
+          if [[ "$SOURCE_BRANCH" =~ [[:space:]] ]]; then
+            echo "::error::Kernel branch must not contain whitespace."
+            exit 1
+          fi
+          if ! REMOTE_SHA="$(git ls-remote --exit-code "$SOURCE_URL" "refs/heads/$SOURCE_BRANCH" | awk 'NR==1 {print $1}')"; then
+            echo "::error::Cannot find branch '$SOURCE_BRANCH' in '$SOURCE_URL'. Check the URL and branch."
+            exit 1
+          fi
+          if [[ ! "$REMOTE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Could not resolve a valid commit SHA for the selected kernel branch."
+            exit 1
+          fi
+          echo "PREBUILD_KERNEL_SHA=$REMOTE_SHA" >> "$GITHUB_ENV"
+          echo "[+] Source URL: $SOURCE_URL"
+          echo "[+] Requested branch: $SOURCE_BRANCH"
+          echo "[+] Remote branch SHA: $REMOTE_SHA"
 
       - name: ⌛️ Compilation environment preparation
         uses: ./.github/workflows/build-env
