@@ -353,9 +353,9 @@ jobs:
           cd "$GITHUB_WORKSPACE/device_kernel"
 
           # Any leftover reject/original files indicate a patch that needs review.
-          mapfile -t PATCH_ARTIFACTS < <(find . -type f \\( -name '*.rej' -o -name '*.orig' \\) -print)
+          mapfile -t PATCH_ARTIFACTS < <(find . -type f \( -name '*.rej' -o -name '*.orig' \) -print)
           if (( ${#PATCH_ARTIFACTS[@]} > 0 )); then
-            printf '::error::Patch residue detected: %s\\n' "${PATCH_ARTIFACTS[@]}"
+            printf '::error::Patch residue detected: %s\n' "${PATCH_ARTIFACTS[@]}"
             printf '%s\\n' "${PATCH_ARTIFACTS[@]}"
             exit 1
           fi
@@ -461,7 +461,7 @@ jobs:
           case "$PACKAGE" in
             *.zip)
               unzip -t "$PACKAGE"
-              if ! unzip -Z1 "$PACKAGE" | grep -Eq '(^|/)(Image|Image\.gz|Image\.gz-dtb|Image-dtb); then
+              if ! unzip -Z1 "$PACKAGE" | grep -Eq '(^|/)(Image|Image\.gz|Image\.gz-dtb|Image-dtb)$'; then
                 echo "::error::Package does not contain a recognized kernel image."
                 exit 1
               fi
