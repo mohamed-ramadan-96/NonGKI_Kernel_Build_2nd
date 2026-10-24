@@ -33,6 +33,10 @@ on:
         description: 'Zip name without .zip'
         type: string
         default: 'Aliothfake-ko-j3s'
+      custom_kernel_version:
+        description: 'Custom Kernel Version suffix (e.g. -FakeDreamer)'
+        type: string
+        default: '-FakeDreamer'
       ksu:
         description: 'KernelSU variant (SUSFS works with bakasu / sukisu only)'
         type: choice
@@ -252,6 +256,308 @@ jobs:
 
       - name: ⚙️ Get necessary tools
         uses: ./.github/workflows/build-ready
+
+      - name: 🏷️ Set custom kernel version
+        shell: bash
+        env:
+          CUSTOM_KERNEL_VERSION: ${{ inputs.custom_kernel_version }}
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/device_kernel"
+          DEFCONFIG="arch/arm64/configs/${{ env.DEFCONFIG_NAME }}"
+          if [[ ! -f "$DEFCONFIG" ]]; then
+            echo "::error::Defconfig not found: $DEFCONFIG"
+            exit 1
+          fi
+          python3 - "$DEFCONFIG" "$CUSTOM_KERNEL_VERSION" <<'PY'
+          import pathlib, re, sys
+          path = pathlib.Path(sys.argv[1])
+          suffix = sys.argv[2]
+          if "\n" in suffix or "\r" in suffix or '"' in suffix:
+              raise SystemExit("Invalid kernel version suffix: quotes/newlines are not allowed.")
+          text = path.read_text()
+          updated, count = re.subn(r'^CONFIG_LOCALVERSION="[^"]*"
+      - name: 🧾 Capture dependency revisions
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/dependency-revisions.txt"
+          : > "$OUT"
+          for dir in \
+            "$GITHUB_WORKSPACE/device_kernel/AnyKernel3" \
+            "$GITHUB_WORKSPACE/device_kernel/KernelSU" \
+            "$GITHUB_WORKSPACE/device_kernel/KernelSU-Next" \
+            "$GITHUB_WORKSPACE/device_kernel/KernelSU-rsuntk" \
+            "$GITHUB_WORKSPACE/device_kernel/KernelSU-xxKSU" \
+            "$GITHUB_WORKSPACE/device_kernel/KernelSU-SukiSU-Ultra" \
+            "$GITHUB_WORKSPACE/device_kernel/KernelSU-BakaSU" \
+            "$GITHUB_WORKSPACE/mkboottools"; do
+            if [[ -e "$dir/.git" ]] && SHA="$(git -C "$dir" rev-parse HEAD 2>/dev/null)"; then
+              printf '%s=%s\n' "${dir#"$GITHUB_WORKSPACE/"}" "$SHA" | tee -a "$OUT"
+            fi
+          done
+          if [[ ! -s "$OUT" ]]; then
+            echo "No separately cloned Git dependencies detected." | tee "$OUT"
+          fi
+
+      - name: 🪝 Patch Kernel of SUSFS
+        uses: ./.github/workflows/patch-susfs
+
+      - name: 🔗 Patch for no-kprobe
+        uses: ./.github/workflows/patch-no-kprobe
+
+      - name: 🪛 Extra Kernel Options
+        run: |
+          cd "$GITHUB_WORKSPACE/device_kernel"
+          D="arch/arm64/configs/${{ env.DEFCONFIG_NAME }}"
+          chmod +x scripts/config
+
+          # xxksu hooks are built with KSU_HACK_ARM64_BRANCH_LINK
+          if [ "${{ inputs.ksu }}" == "xxksu" ]; then
+            ./scripts/config --file "$D" --enable CONFIG_KSU_HACK_ARM64_BRANCH_LINK
+          fi
+
+          # BakaSU calls security_dump_masked_av, which is only built with CONFIG_AUDIT
+          ./scripts/config --file "$D" --enable CONFIG_AUDIT
+
+          # SUSFS SUS_MAP and uname spoof
+          ./scripts/config --file "$D" --enable CONFIG_KSU_SUSFS_SUS_MAP --enable CONFIG_KSU_SUSFS_SPOOF_UNAME
+
+          # Official LLVM is built without MLGO, so disable these flags.
+          sed -i -e '/regalloc-enable-advisor/s/^/#/' -e '/enable-ml-inliner/s/^/#/' Makefile
+
+          # BakaSU needs these two symbols non-static.
+          sed -i 's/^static const struct file_operations sel_handle_status_ops/const struct file_operations sel_handle_status_ops/' security/selinux/selinuxfs.c
+          sed -i 's/^static ssize_t (\*const write_op\[\])(/ssize_t (*const write_op[])(/' security/selinux/selinuxfs.c
+
+          # NTSYNC
+          if [ "${{ inputs.ntsync }}" == "true" ]; then
+            ./scripts/config --file "$D" --enable CONFIG_NTSYNC
+          else
+            ./scripts/config --file "$D" --disable CONFIG_NTSYNC
+          fi
+
+          # Bypass Charging
+          if [ "${{ inputs.bypass_charging }}" == "true" ]; then
+            ./scripts/config --file "$D" --enable CONFIG_BYPASS_CHARGING
+          else
+            ./scripts/config --file "$D" --disable CONFIG_BYPASS_CHARGING
+          fi
+
+          # RW Swappiness
+          if [ "${{ inputs.rw_swappiness }}" == "true" ]; then
+            ./scripts/config --file "$D" --enable CONFIG_RW_SWAPPINESS
+          else
+            ./scripts/config --file "$D" --disable CONFIG_RW_SWAPPINESS
+          fi
+
+      - name: 🔋 Battery variant
+        if: ${{ inputs.battery == '4520-stock' }}
+        run: |
+          cd "$GITHUB_WORKSPACE/device_kernel"
+          sed -i -e '/qcom,j3s-batt-profile;/d' arch/arm64/boot/dts/vendor/qcom/alioth-sm8250.dtsi
+          sed -i -e '/fg-gen4-batterydata-apollo-sun-5000mah.dtsi/d' arch/arm64/boot/dts/vendor/qcom/alioth-sm8250.dtsi
+
+      - name: 🧰 Patch Kernel of Re:Kernel
+        uses: ./.github/workflows/patch-rekernel
+
+      - name: 💿 Patch Kernel of Droidspaces
+        uses: ./.github/workflows/patch-droidspaces
+
+      - name: 🔒 Patch Kernel of Baseband Guard
+        uses: ./.github/workflows/patch-baseband-guard
+
+      - name: 🛡️ Patch Kernel of NoMount
+        uses: ./.github/workflows/patch-nomount
+
+      - name: 🧾 Audit patch results
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/device_kernel"
+
+          # Any leftover reject/original files indicate a patch that needs review.
+          mapfile -t PATCH_ARTIFACTS < <(find . -type f \( -name '*.rej' -o -name '*.orig' \) -print)
+          if (( ${#PATCH_ARTIFACTS[@]} > 0 )); then
+            printf '::error::Patch residue detected: %s\n' "${PATCH_ARTIFACTS[@]}"
+            printf '%s\n' "${PATCH_ARTIFACTS[@]}"
+            exit 1
+          fi
+
+          # Re:Kernel's patch script can report that its source marker is absent
+          # even when its patching flow is expected to continue on this kernel.
+          # Do not fail the build based on a broad text-marker search here.
+          if [[ "${{ inputs.rekernel }}" == "true" ]]; then
+            echo "[i] Re:Kernel was requested; relying on the patch action output and build/config checks."
+          fi
+          if [[ "${{ inputs.nomount }}" == "true" ]] && ! grep -Rqs --include='*.c' --include='*.h' 'NOMOUNT' fs include kernel drivers; then
+            echo "::error::NoMount was requested but no NoMount source marker was found."
+            exit 1
+          fi
+          echo "[+] Patch audit passed; no .rej/.orig files remain."
+
+      - name: 🩹 Fix kowsu on 4.19
+        if: ${{ inputs.ksu == 'kowsu' }}
+        run: |
+          cd "$GITHUB_WORKSPACE/device_kernel"
+          find drivers/kernelsu KernelSU -type f \( -name '*.c' -o -name '*.h' \) 2>/dev/null | while read -r f; do
+            sed -i '/MODULE_IMPORT_NS/d' "$f"
+            sed -i 's|<linux/pgtable.h>|<asm/pgtable.h>|g' "$f"
+            sed -i -E 's/register_trace_prio_([a-z_]+)\(([^,]+),([^,]+),[^)]*\)/register_trace_\1(\2,\3)/g' "$f"
+            sed -i 's/copy_to_kernel_nofault/probe_kernel_write/g' "$f"
+            sed -i 's/copy_from_kernel_nofault/probe_kernel_read/g' "$f"
+            sed -i 's/strncpy_from_kernel_nofault/strncpy_from_unsafe/g' "$f"
+            sed -i 's/copy_from_user_nofault/probe_user_read/g' "$f"
+            sed -i 's/copy_to_user_nofault/probe_user_write/g' "$f"
+          done
+          F=$(find drivers/kernelsu KernelSU -name file_wrapper.c 2>/dev/null | head -n1)
+          if [ -n "$F" ]; then
+            sed -i 's/return orig->f_op->iopoll(kiocb, spin);/return -EOPNOTSUPP;/' "$F"
+            sed -i 's/fp->f_op->iopoll ? ksu_wrapper_iopoll : NULL/NULL/' "$F"
+            sed -i 's/if (remap_flags \& REMAP_FILE_DEDUP)/if (0)/' "$F"
+            sed -i 's/return orig->f_op->remap_file_range(file_in, pos_in, orig, pos_out, len, remap_flags);/return -EOPNOTSUPP;/' "$F"
+            sed -i 's/return orig->f_op->remap_file_range(orig, pos_in, file_out, pos_out, len, remap_flags);/return -EOPNOTSUPP;/' "$F"
+            sed -i 's/fp->f_op->remap_file_range ? ksu_wrapper_remap_file_range : NULL/NULL/' "$F"
+                        sed -i '/p->ops.iopoll = /i #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)' "$F"
+            sed -i '/p->ops.iopoll = /a #endif' "$F"
+            sed -i '/p->ops.remap_file_range = /i #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0)' "$F"
+            sed -i '/p->ops.remap_file_range = /a #endif' "$F"
+            echo "[+] file_wrapper.c patched for 4.19"
+          fi
+          S=$(find drivers/kernelsu KernelSU -name seccomp_cache.c 2>/dev/null | head -n1)
+          if [ -n "$S" ]; then
+            sed -i 's/SECCOMP_ARCH_NATIVE_NR/__NR_syscalls/g' "$S"
+            echo "[+] seccomp_cache.c patched for 4.19"
+          fi
+
+
+      - name: 🚀 Build Process
+        uses: ./.github/workflows/build-process
+
+      - name: ✅ Verify config
+        shell: bash
+        env:
+          WANT_SUSFS: ${{ inputs.susfs }}
+          WANT_REKERNEL: ${{ inputs.rekernel }}
+          WANT_NOMOUNT: ${{ inputs.nomount }}
+          WANT_DROIDSPACES: ${{ inputs.droidspaces }}
+          WANT_BBG: ${{ inputs.bbg }}
+          WANT_NTSYNC: ${{ inputs.ntsync }}
+          WANT_BYPASS_CHARGING: ${{ inputs.bypass_charging }}
+          WANT_RW_SWAPPINESS: ${{ inputs.rw_swappiness }}
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/device_kernel"
+          test -s out/.config || { echo "::error::out/.config is missing."; exit 1; }
+
+          verify_enabled() {
+            local symbol="$1"
+            if ! grep -qx "$symbol=y" out/.config; then
+              echo "::error::Requested feature is enabled in workflow inputs but $symbol is not enabled in out/.config."
+              exit 1
+            fi
+            echo "[+] Verified $symbol=y"
+          }
+
+          [[ "$WANT_SUSFS" != "true" ]] || verify_enabled CONFIG_KSU_SUSFS
+          [[ "$WANT_REKERNEL" != "true" ]] || verify_enabled CONFIG_REKERNEL
+          [[ "$WANT_NOMOUNT" != "true" ]] || verify_enabled CONFIG_NOMOUNT
+          [[ "$WANT_BBG" != "true" ]] || verify_enabled CONFIG_BBG
+          [[ "$WANT_NTSYNC" != "true" ]] || verify_enabled CONFIG_NTSYNC
+          [[ "$WANT_BYPASS_CHARGING" != "true" ]] || verify_enabled CONFIG_BYPASS_CHARGING
+          [[ "$WANT_RW_SWAPPINESS" != "true" ]] || verify_enabled CONFIG_RW_SWAPPINESS
+
+          if [[ "$WANT_DROIDSPACES" == "true" ]]; then
+            test -s arch/arm64/configs/droidspaces.config || { echo "::error::Droidspaces config is missing."; exit 1; }
+            echo "[+] Verified Droidspaces config is present."
+          fi
+
+      - name: 🔩 Pack Process
+        uses: ./.github/workflows/pack-process
+
+      - name: 📦 Validate package and generate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE="$GITHUB_WORKSPACE/device_kernel/${PACK_NAME:?PACK_NAME was not set by pack step}"
+          if [[ ! -s "$PACKAGE" ]]; then
+            echo "::error::Expected package was not created: $PACKAGE"
+            exit 1
+          fi
+          case "$PACKAGE" in
+            *.zip)
+              unzip -t "$PACKAGE"
+              if ! unzip -Z1 "$PACKAGE" | grep -Eq '(^|/)(Image|Image\.gz|Image\.gz-dtb|Image-dtb)$'; then
+                echo "::error::Package does not contain a recognized kernel image."
+                exit 1
+              fi
+              ;;
+            *.img)
+              file "$PACKAGE"
+              ;;
+            *)
+              echo "::error::Unexpected package extension: $PACKAGE"
+              exit 1
+              ;;
+          esac
+          sha256sum "$PACKAGE" | tee "$PACKAGE.sha256"
+          {
+            echo "package=$(basename "$PACKAGE")"
+            echo "sha256=$(sha256sum "$PACKAGE" | awk '{print $1}')"
+            echo "kernel_source=$KERNEL_SOURCE_URL"
+            echo "kernel_branch=$KERNEL_SOURCE_BRANCH"
+            echo "kernel_commit=$KERNEL_SOURCE_SHA"
+            echo "workflow_commit=$GITHUB_SHA"
+            echo "build_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "device=$DEVICE_CODENAME"
+            echo "kernel_version=$KERNEL_VERSION"
+            echo "kernelsu_variant=${{ inputs.ksu }}"
+            echo "susfs=${{ inputs.susfs }}"
+            echo "rekernel=${{ inputs.rekernel }}"
+            echo "nomount=${{ inputs.nomount }}"
+            echo "droidspaces=${{ inputs.droidspaces }}"
+            echo "baseband_guard=${{ inputs.bbg }}"
+            echo "ntsync=${{ inputs.ntsync }}"
+            echo "bypass_charging=${{ inputs.bypass_charging }}"
+            echo "rw_swappiness=${{ inputs.rw_swappiness }}"
+          } > "$GITHUB_WORKSPACE/device_kernel/build-info.txt"
+          echo "[+] Package validated: $PACKAGE"
+
+      - name: 📄 Upload build metadata and checksums
+        uses: actions/upload-artifact@v7
+        with:
+          name: alioth-build-metadata
+          path: |
+            device_kernel/build-info.txt
+            dependency-revisions.txt
+            device_kernel/${{ env.PACK_NAME }}.sha256
+          if-no-files-found: error
+
+      - name: ✏️ Upload Artifacts
+        uses: ./.github/workflows/upload-files
+
+      - name: 🧯 Upload failure diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: alioth-failure-diagnostics
+          path: |
+            device_kernel/error.log
+            device_kernel/out/.config
+            device_kernel/build-info.txt
+            device_kernel/*.rej
+            device_kernel/*.orig
+            device_kernel/rej_files_*.tar.gz
+            device_kernel/compile_commands.json
+          if-no-files-found: warn
+,
+                                   lambda _: f'CONFIG_LOCALVERSION="{suffix}"',
+                                   text, count=1, flags=re.M)
+          if count != 1:
+              raise SystemExit("Could not find CONFIG_LOCALVERSION in the selected defconfig.")
+          path.write_text(updated)
+          print(f"[+] CONFIG_LOCALVERSION set to {suffix!r}")
+          PY
 
       - name: 🧾 Capture dependency revisions
         shell: bash
